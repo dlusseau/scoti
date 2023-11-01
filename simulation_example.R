@@ -14,7 +14,7 @@
 # simulate sampling in a bycatch monitoring program  
 
 
-# 3. estimate_fishing_effort_metier.R
+# (3. estimate_fishing_effort_metier.R)
 # estimates the fishing effort of the simulated fishing year
 # This function is not described explicitly in in WKPETSAMP MS ('Report headings participants and text written 20231013 ... docx'), but see Figure 1: Schematic of simulation framework, Effort reporting. 
 # A function with the same name appears below, but the code is commented away.
@@ -25,7 +25,9 @@
 
 
 # Note:
-# reorder the arguments below to follow the order suggested in simulation_parameters.xlsx
+# reordered functions: first fishing year, then monitoring
+# reordered arguments according to simulation_parameters.xlsx
+
 
 
 # bymetier<-c("TRUE","FALSE")
@@ -37,19 +39,70 @@
 
 
 
-# 2. Argument for monitor_BPUE_metier -----
+# Argument values for make_fishing_year_metier.R ----
 
-# Note: seems more logical to first create the fishing year, then the monitoring 
+# Note: may need to set additional, case-specific arguments
+
+# p.metier (p_metier)
+# probability (proportion) of vessels belonging each metier
+# See also 'SCOTI extension...docx', Table 1
+
+# matrix:
+# one row per set of proportions
+# one column per metier, here two.
+p.metier = cbind(
+  c(0.5, 0.2, 0.8),
+  c(0.5, 0.8, 0.2))
+
+
+
+# p.bycatch (p_bycatch_event)
+# probability of bycatch event by haul and metier
+
+# matrix
+# one row per set of proportions
+# one column per metier, here two.
+p.bycatch = cbind(
+  c(0.1, 0.01, 0.001, 0.001, 0.001),
+  c(0.2, 0.02, 0.002, 0.01, 0.1))
+
+
+
+
+# Argument values for monitor_BPUE_metier -----
+
+# Note: may need to set additional, case-specific arguments
+
+
+# p_monitor_boat_boatTRUE
+# ~p_monitor_boat; assigned to p_monitor_boat (proportion of vessels monitored) below
+# vector, one value per proportion
+# Note: name could be improved
+p_monitor_boat_boatTRUE = c(0.01, 0.05, 0.1, 0.2)
+# pmonitor_boatFALSE<-c(.001,.01,.05,.1,.5,.9)
+
+
+
+# pmonitor_boatTRUE
+# ~pmonitor; assigned to pmonitor (proportion of hauls monitored for each vessel) below
+# vector, one value per proportion
+# Note: name could be improved
+pmonitor_boatTRUE = c(0.01, 0.05, 0.1, 0.2)
+
 
 # p_monitor_metier (p_sample_metier)
 # set proportion of monitoring allocated to each of two metiers
-# as a matrix, with one column per metier
-# See also 'SCOTI extension...docx', Table 3 
+# matrix, with one column per metier
+
+
 # Note: shouldn't the proportions sum to one? See e.g. row 1 and 4
-# Row one (1, 1) is used when if sampling not stratified by metier:
+# But: Row one (1, 1) is used when if sampling _not_ stratified by metier:
 # if(bymetier == FALSE); temp$p_monitor_metier = p_monitor_metier[p_m_m, 1] 
 # See also Note in monitor_BPUE_metier.R, where the argument is a scalar
 
+# matrix
+# one row per set of proportions
+# one column per metier, here two.
 
 p_monitor_metier = cbind(
   c(1, 0.8, 0.2, 0.2),
@@ -100,61 +153,7 @@ boat_samp = "TRUE"
 
 
 
-
-
-
-
-# Arguments for make_fishing_year_metier.R ----
-
-# reordered according to simulation_parameters.xlsx
-
-
-# p.metier (p_metier)
-# probability (proportion) of vessels belonging each metier
-# See also 'SCOTI extension...docx', Table 1
-
-# matrix:
-# one row per set of proportions
-# one column per metier, here two.
-p.metier = cbind(
-  c(0.5, 0.2, 0.8),
-  c(0.5, 0.8, 0.2))
-
-
-
-# p.bycatch (p_bycatch_event)
-# probability of bycatch event by haul and metier
-# See also 'SCOTI extension...docx', Table 2
-
-
-# one row per set of proportions
-# one column per metier, here two.
-p.bycatch = cbind(
-  c(0.1, 0.01, 0.001, 0.001, 0.001),
-  c(0.2, 0.02, 0.002, 0.01, 0.1))
-
-
-
-
-
-
-
-# Argument of estimate_fishing_effort_metier ------
-
-
-
-
-# pmonitor_boatTRUE (~pmonitor; assigned to pmonitor (proportion of hauls monitored for each vessel) below)
-# Note: the name could be improved
-pmonitor_boatTRUE = c(0.01, 0.05, 0.1, 0.2)
-
-
-# p_monitor_boat_boatTRUE (~p_monitor_boat; assigned to p_monitor_boat (proportion of vessels monitored) below)
-# Note: the name could be improved
-p_monitor_boat_boatTRUE = c(0.01, 0.05, 0.1, 0.2)
-# pmonitor_boatFALSE<-c(.001,.01,.05,.1,.5,.9)
-
-
+# Arguments of estimate_fishing_effort_metier ------
 
 
 # p_report
@@ -176,9 +175,14 @@ p_report = cbind(
 
 
 
-# set up data frame to collect result of simulated monitoring ----------
+# set up data frame to collect parameter values and results simulation  ----------
+
+# Note: may need to add names of additional case-specific arguments
+
+
 monitor_estimate = data.frame(
   
+  # fishing parameters
   # fishing year
   year = NA,
   
@@ -191,22 +195,28 @@ monitor_estimate = data.frame(
   p_metier_1 = NA,
   p_metier_2 = NA,
   
-  # proportion of hauls monitored for each vessel
-  pmonitor = NA,
   
+  # sampling effort
   # proportion of vessels monitored
   p_monitor_boat = NA,
+  
+  # proportion of hauls monitored for each vessel
+  pmonitor = NA,
+
+
+  # sampling design
+  # p_monitor_metier: proportion of monitoring allocated to (each?) métier
+  p_monitor_metier = NA,
+  
+  # bymetier; is sampling stratified by metier?
+  bymetier = NA,
   
   # boat_samp
   # if FALSE: sampling occurs at the fishing event level (haul); if TRUE: first sample vessels to be monitored, then sample hauls
   boat_samp = NA,
   
-  # bymetier; is sampling stratified by metier?
-  bymetier = NA,
   
-  # p_monitor_metier: proportion of monitoring allocated to (each?) métier
-  p_monitor_metier = NA,
-  
+  # BPUE
   # sum number of bycatch individuals divided by number of hauls = number of rows in 'fishing'; see below
   BPUE_real = NA,
   
@@ -238,8 +248,7 @@ m = 1 # 1 to 3
 # p_monitor_boat_boatTRUE (i.e. p_monitor_boat, proportion of vessels monitored)
 # p_monitor_metier (p_sample_metier; proportion of monitoring allocated to each métier)
 
-# currently, we don't loop over rows of p.bycatch (b) and p.metier (m)
-
+# Note: may need to loop over additional case-specific arguments
 
 
 # y: vector of fishing years
@@ -256,25 +265,31 @@ for (y in 1:100) {
   
   # for each row in p.metier matrix
   #for (m in 1:dim(p.metier)[1]) {
-  
+ 
+   
   # create fishing year ---------
+  
   # set p.catch and p.metier, using single values of b and m
-  # all other arguments use default values
+  
+  # Note: may need to set values of additional case-specific arguments
+  # although defaults values may be fine, it may be better to be explicit here 
   fishing = make_fishing_year_metier(
-    
-    # select a row from p.bycatch 
-    # Note: assign the selection to an object with the same name?
-    p.bycatch = p.bycatch[b, ],
     
     # select a row from p.metier
     # Note: assign the selection to an object with the same name?
-    p.metier = p.metier[m, ])
+    p.metier = p.metier[m, ],
+    
+    # select a row from p.bycatch 
+    # Note: assign the selection to an object with the same name?
+    p.bycatch = p.bycatch[b, ]
+    )
   
   
   # calculate BPUE_real
   # sum number of bycatch individuals divided by number of hauls = number of rows in 'fishing'
-  # Note: perhaps nrow intead of dim(...)[1]
+  # Note: perhaps nrow instead of dim(...)[1]
   BPUE_real = sum(fishing$nbycatch) / dim(fishing)[1]
+  
   print("fishing done")
   flush.console()
   
@@ -283,6 +298,7 @@ for (y in 1:100) {
   # Note: think about argument name; see above 
   # Note: here and in other places: seq_along may be safer than 1:length 
   # https://r4ds.had.co.nz/iteration.html#for-loops
+  
   for (pm.b in 1:length(pmonitor_boatTRUE)) {
     
     # for each value in p_monitor_boat_boatTRUE (i.e. p_monitor_boat, proportion of vessels monitored)
@@ -297,12 +313,19 @@ for (y in 1:100) {
           
           
           # set up empty data frame to collect parameter values of monitoring and corresponding BPUE_est
-          # order according to simulation_parameters.xlsx
+          # Note 1: may need additional, case-specific arguments used in make_fishing_year or monitor_BPUE
+          
+          # Note 2: ordered variables according to simulation_parameters.xlsx
           # i.e. properties of fishing, bycatch, sampling, monitoring
+         
+          
           temp = data.frame(
             
             # fishing year. Here 100 years are created  
             year = y,
+            
+            
+            # fishing
             
             # p_metier_ (p.metier in make_fishing; probability (proportion) of vessels belonging each metier)
             # one column for each metier, hard-coded
@@ -315,25 +338,27 @@ for (y in 1:100) {
             p_bycatch_2 = NA,
             
             
+            # sampling effort
+        
             # proportion of vessels monitored
             p_monitor_boat = NA,
-            
             
             # proportion of hauls monitored for each vessel
             pmonitor = NA,
             
-            
-            # p_monitor_metier: proportion of monitoring allocated to (each?) métier
+            # proportion of monitoring allocated to each métier
             p_monitor_metier = NA,
             
+            
+            # sampling design
             
             # bymetier; is sampling stratified by metier?
             bymetier = NA,
             
-            
             # boat_samp; if FALSE: sampling occurs at the fishing event level (haul);
             # if TRUE: first sample vessels to be monitored, then sample hauls
             boat_samp = NA,
+            
             
             # BPUE, real and estimated
             BPUE_real = NA,
@@ -341,12 +366,19 @@ for (y in 1:100) {
             BPUE_est_CV = NA)
           
           
-          # add parameter values to tmp data for current iteration
+          # add parameter values to temp data in each iteration
+          # Note: may need to add values of additional case-specific arguments
+          
+          
+          # fishing
           
           # select values from p.metier (matrix; one row per set of proportions; one column per metier, here two)
           # currently, we don't loop over rows; m is set to 1 above
           temp$p_metier_1 = p.metier[m, 1]
           temp$p_metier_2 = p.metier[m, 2]
+          
+          
+          # bycatch
           
           # select values from p.bycatch (matrix; one row per set of proportions; one column per metier, here two)
           # currently, we don't loop over rows; b is set to 1 above
@@ -354,19 +386,20 @@ for (y in 1:100) {
           temp$p_bycatch_2 = p.bycatch[b, 2]
           
          
-          
-          
-          temp$pmonitor = pmonitor_boatTRUE[pm.b]
+          # sampling effort
           
           temp$p_monitor_boat = p_monitor_boat_boatTRUE[p_m.b]
+          temp$pmonitor = pmonitor_boatTRUE[pm.b]
           
-          temp$boat_samp = boat_samp
           
-          temp$bymetier = bymetier
+          # sampling design
           
           # Row one of p_monitor_metier (1, 1) is used when sampling not stratified by metier:
           temp$p_monitor_metier = p_monitor_metier[p_m_m, 1]
+          temp$bymetier = bymetier 
+          temp$boat_samp = boat_samp
           
+          # BPUE
           temp$BPUE_real = BPUE_real
          
           # if sampling is stratified by metier (here: two metiers) 
@@ -380,38 +413,82 @@ for (y in 1:100) {
             year = rep(y, 2),
             
             
-            p_bycatch_1 = NA,
-            p_bycatch_2 = NA,
+            # fishing
             
+            # p_metier_ (p.metier in make_fishing; probability (proportion) of vessels belonging each metier)
+            # one column for each metier, hard-coded
             p_metier_1 = NA,
             p_metier_2 = NA,
             
-            pmonitor = NA,
+            # p_bycatch_ (p.bycatch in make_fishing; probability of bycatch event by haul and metier)
+            # one column for each metier, hard-coded
+            p_bycatch_1 = NA,
+            p_bycatch_2 = NA,
+            
+            
+            # sampling effort
+            
+            # proportion of vessels monitored
             p_monitor_boat = NA,
-            boat_samp = NA,
-            bymetier = NA,
+            
+            # proportion of hauls monitored for each vessel
+            pmonitor = NA,
+            
+            # proportion of monitoring allocated to each métier
             p_monitor_metier = NA,
             
+            
+            # sampling design
+            
+            # bymetier; is sampling stratified by metier?
+            bymetier = NA,
+            
+            # boat_samp; if FALSE: sampling occurs at the fishing event level (haul);
+            # if TRUE: first sample vessels to be monitored, then sample hauls
+            boat_samp = NA,
+           
+            # BPUE
             BPUE_real = NA,
             BPUE_est = NA,
             BPUE_est_CV = NA)
           
           
           # add parameter values to tmp data
-          temp$p_bycatch_1 = p.bycatch[b, 1]
-          temp$p_bycatch_2 = p.bycatch[b, 2]
+          # add parameter values to temp data in each iteration
+          # Note: may need to add values of additional case-specific arguments
           
+          
+          # fishing
+          
+          # select values from p.metier (matrix; one row per set of proportions; one column per metier, here two)
+          # currently, we don't loop over rows; m is set to 1 above
           temp$p_metier_1 = p.metier[m, 1]
           temp$p_metier_2 = p.metier[m, 2]
           
-          temp$pmonitor = pmonitor_boatTRUE[pm.b]
+          
+          # bycatch
+          
+          # select values from p.bycatch (matrix; one row per set of proportions; one column per metier, here two)
+          # currently, we don't loop over rows; b is set to 1 above
+          temp$p_bycatch_1 = p.bycatch[b, 1]
+          temp$p_bycatch_2 = p.bycatch[b, 2]
+          
+          
+          # sampling effort
           
           temp$p_monitor_boat = p_monitor_boat_boatTRUE[p_m.b]
+          temp$pmonitor = pmonitor_boatTRUE[pm.b]
+          
+          
+          # sampling design
+          
+          temp$p_monitor_metier = p_monitor_metier[p_m_m, ]
           
           temp$boat_samp = boat_samp
-          
           temp$bymetier = bymetier
-          temp$p_monitor_metier = p_monitor_metier[p_m_m, ]
+          
+          
+          # BPUE
           temp$BPUE_real = BPUE_real
           
         }
