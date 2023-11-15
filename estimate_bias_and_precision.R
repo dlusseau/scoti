@@ -138,6 +138,11 @@ for (y in 1:100) { # loop over years
       BPUE_real <- BPUE_real$BPUE
       names(BPUE_real) <-  paste0("BPUE_real_",1:length(BPUE_real))
       BPUE_real <- t(BPUE_real)
+	  
+	  effort_real <- fishing %>% group_by(metiers) %>% summarize(effort=n())
+      effort_real <- effort_real$effort
+      names(effort_real) <-  paste0("fishingeffort_real_",1:length(effort_real))
+      effort_real <- t(effort_real)
       
       BPUE_est <- monitoring$BPUE_est
       names(BPUE_est) <-  paste0("BPUE_est_",1:length(BPUE_est))
@@ -147,7 +152,7 @@ for (y in 1:100) { # loop over years
       names(CV) <- paste0("CV_",1:length(CV))
       CV <- t(CV)
     
-      temp <- cbind(temp,BPUE_real,BPUE_est,CV) # append estimates to scenario description
+      temp <- cbind(temp,BPUE_real,BPUE_est,CV,effort_real) # append estimates to scenario description
       
       monitor_estimate<-rbind(monitor_estimate,temp) # monitoring scenario done         
         
@@ -179,6 +184,7 @@ for (y in 1:100) { # loop over years
       temp$BPUE_real=sum(fishing$nbycatch)/nrow(fishing)
       temp$BPUE_est<-monitoring$BPUE_est
       temp$BPUE_est_CV<-monitoring$CV
+	  temp$effort_real<-nrow(fishing)
       monitor_estimate<-rbind(monitor_estimate,temp)   
     }
     } # end of monitoring scenario
