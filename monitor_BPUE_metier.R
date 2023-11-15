@@ -91,11 +91,14 @@ monitored<-c(monitored,sample(as.numeric(row.names(fishing[fishing$metiers==i,])
 }
 
 fishing_monitored<-fishing[monitored,]
+  if (p_haul_obs<1) {
 not_observed<-sample(c(1:dim(fishing_monitored)[1]),floor((1-p_haul_obs)*dim(fishing_monitored)[1]),replace=FALSE)
 fishing_monitored$bycatch[not_observed]<-0
 fishing_monitored$nbycatch[not_observed]<-0
+    }
+ if (detect_prob<1) { 
 fishing_monitored$nbycatch<-sapply(fishing_monitored$nbycatch,function(x) rbinom(1,x,detect_prob))
-
+}
 BPUE_est[j,]<-(tapply(fishing_monitored$nbycatch,fishing_monitored$metiers,sum)/tapply(fishing_monitored$nbycatch,fishing_monitored$metiers,length))
 
 
