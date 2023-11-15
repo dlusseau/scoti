@@ -31,8 +31,10 @@ nmetier=length(unique(fishing$metiers))
 
 if (bymetier==FALSE) {
 BPUE_est<-array(NA,dim=nsample)
+effort_mon<-array(NA,dim=nsample)
 } else {
 BPUE_est<-array(NA,dim=c(nsample,nmetier))
+effort_mon<-array(NA,dim=c(nsample,nmetier))
 }
 
 for (j in 1:nsample) { 
@@ -52,6 +54,7 @@ fishing_monitored$nbycatch<-sapply(fishing_monitored$nbycatch,function(x) rbinom
 }
                                    
 BPUE_est[j]<-(sum(fishing_monitored$nbycatch)/length(monitored))
+effort_mon[j]<-length(monitored)
 
 } else {
 boat_sampled<-sample(unique(fishing$boat),size=floor(length(unique(fishing$boat))*p_monitor_boat),replace=FALSE)
@@ -75,6 +78,7 @@ fishing_monitored$nbycatch<-sapply(fishing_monitored$nbycatch,function(x) rbinom
 }
                                    
 BPUE_est[j]<-(sum(fishing_monitored$nbycatch)/length(monitored))
+effort_mon[j]<-length(monitored)
 }
 
 } else {
@@ -91,16 +95,13 @@ monitored<-c(monitored,sample(as.numeric(row.names(fishing[fishing$metiers==i,])
 }
 
 fishing_monitored<-fishing[monitored,]
-  if (p_haul_obs<1) {
 not_observed<-sample(c(1:dim(fishing_monitored)[1]),floor((1-p_haul_obs)*dim(fishing_monitored)[1]),replace=FALSE)
 fishing_monitored$bycatch[not_observed]<-0
 fishing_monitored$nbycatch[not_observed]<-0
-    }
- if (detect_prob<1) { 
 fishing_monitored$nbycatch<-sapply(fishing_monitored$nbycatch,function(x) rbinom(1,x,detect_prob))
-}
-BPUE_est[j,]<-(tapply(fishing_monitored$nbycatch,fishing_monitored$metiers,sum)/tapply(fishing_monitored$nbycatch,fishing_monitored$metiers,length))
 
+BPUE_est[j,]<-(tapply(fishing_monitored$nbycatch,fishing_monitored$metiers,sum)/tapply(fishing_monitored$nbycatch,fishing_monitored$metiers,length))
+effort_mon[j,]<-tapply(fishing_monitored$nbycatch,fishing_monitored$metiers,length)
 
 
 } else {
@@ -129,6 +130,8 @@ fishing_monitored$nbycatch<-sapply(fishing_monitored$nbycatch,function(x) rbinom
 }
 
 BPUE_est[j,]<-(tapply(fishing_monitored$nbycatch,fishing_monitored$metiers,sum)/tapply(fishing_monitored$nbycatch,fishing_monitored$metiers,length))
+effort_mon[j,]<-tapply(fishing_monitored$nbycatch,fishing_monitored$metiers,length)
+
 }
 
 } #metier else bracket
@@ -136,13 +139,15 @@ BPUE_est[j,]<-(tapply(fishing_monitored$nbycatch,fishing_monitored$metiers,sum)/
 } # sample iteration loop
 if (bymetier==FALSE) {
 BPUE_est_mean<-mean(BPUE_est,na.rm=TRUE) #if bymetier is TRUE then 2 element vector
+effort_mon_mean<-mean(effort_mon,na.rm=TRUE)
 BPUE_est_CV<-sd(BPUE_est,na.rm=TRUE)/mean(BPUE_est,na.rm=TRUE) 
 } else {
 BPUE_est_mean<-colMeans(BPUE_est,na.rm=TRUE) #if bymetier is TRUE then 2 element vector
+effort_mon_mean<-colMeans(effort_mon,na.rm=TRUE)
 BPUE_est_CV<-apply(BPUE_est,2,function(x) sd(x,na.rm=TRUE))/colMeans(BPUE_est,na.rm=TRUE) 
 }
 
-return(list(BPUE_est=BPUE_est_mean,CV=BPUE_est_CV))
+return(list(BPUE_est=BPUE_est_mean,CV=BPUE_est_CV,effort_mon=effort_mon_mean))
 }
 
 
