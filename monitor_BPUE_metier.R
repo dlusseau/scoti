@@ -3,7 +3,10 @@
 ####################################################################################################
 
 monitor_BPUE_metier<-function(pmonitor=0.5,nsample=1000,BPUE_real=0,fishing=NA, p_monitor_boat=.1,boat_samp=TRUE,
-p_haul_obs=1,detect_prob=1,refusal_rate=0, misclassification=0, bymetier=FALSE, p_monitor_metier=.5) {
+p_haul_obs=1,detect_prob=1,refusal_rate=0, misclassification=0, bymetier=FALSE, p_monitor_metier=1,p.metier=c(.2,.8),p.bycatch=c(0.1,.01),focus=1) {
+
+### changes on 17 Nov to fix issue raised by Torbjoern 
+### added force
 
 #p_haul_obs the probability that an entire fishing events (hauls) was observed by the observer
 #detect_prob is the detection probability of each individual in the bycatch event
@@ -27,6 +30,14 @@ p_haul_obs=1,detect_prob=1,refusal_rate=0, misclassification=0, bymetier=FALSE, 
 #second step: variance associated with observed ID
 
 #p_monitor_metier: what is the proportion of the monitoring effort which is attributed to each "metier" simulated in fishing
+
+#p_monitor_metier is now defunct, it doubled the role of p.metier in the first place whe working with tuned fisheries.
+# it still served a purpose in simulating situations where metiers were unknown to the monitoring folks HOWEVER the total monitored effort
+#was off, but can be retrieved
+
+#instead we introduce focus: a multiplier for increased focussed on the metier with the lowest bycatch probability 
+# focus is therefore used iif there is differential in bycatch probability and there is a unique minimum
+
 nmetier=length(unique(fishing$metiers))
 
 if (bymetier==FALSE) {
@@ -86,7 +97,27 @@ nmetier<-length(unique(fishing$metiers)) # for error catching later on
 
 if (boat_samp==FALSE) {
 nmetier<-length(unique(fishing$metiers)) # for error catching later on
-monitored_by_metier<-p_monitor_metier*pmonitor
+#####
+#correction 17 Nov 2023
+####
+#monitored_by_metier<-p_monitor_metier*pmonitor
+if (force==1) {
+monitored_by_metier<-pmonitor
+#monitored<-sample(as.numeric(row.names(fishing[fishing$metiers==1,])),floor(monitored_by_metier[1]*length(row.names(fishing[fishing$metiers==1,]))),replace=FALSE) # sample without replacement
+monitored<-sample(as.numeric(row.names(fishing[fishing$metiers==1,])),floor(monitored_by_metier*length(row.names(fishing[fishing$metiers==1,]))),replace=FALSE) # sample without replacement
+for (i in 2:nmetier) {
+#monitored<-c(monitored,sample(as.numeric(row.names(fishing[fishing$metiers==i,])),floor(monitored_by_metier[i]*length(row.names(fishing[fishing$metiers==i,]))),replace=FALSE)) # sample without replacement
+monitored<-c(monitored,sample(as.numeric(row.names(fishing[fishing$metiers==i,])),floor(monitored_by_metier*length(row.names(fishing[fishing$metiers==i,]))),replace=FALSE)) # sample without replacement
+
+}
+} else {
+multiplier<-p.metier
+multiplier[which.min(p.bycatch)]<-force*pmonitor # we boost monitoring
+# now we have to take it out from the rest of the other metiers evenly
+denominator<-sum(p.metier)-p.metier[which.min(p.bycatch)]
+redux<-(force-1)*pmonitor*p.metier[which.min(p.bycatch)]/denominator
+multiplier[p.bycatch!=min(p.bycatch)]<-pmonitor-redux
+monitored_by_metier<-multiplier
 
 monitored<-sample(as.numeric(row.names(fishing[fishing$metiers==1,])),floor(monitored_by_metier[1]*length(row.names(fishing[fishing$metiers==1,]))),replace=FALSE) # sample without replacement
 for (i in 2:nmetier) {
@@ -94,25 +125,60 @@ monitored<-c(monitored,sample(as.numeric(row.names(fishing[fishing$metiers==i,])
 
 }
 
+
+}
+
+
+
 fishing_monitored<-fishing[monitored,]
+
+if (p_haul_obs<1) {
 not_observed<-sample(c(1:dim(fishing_monitored)[1]),floor((1-p_haul_obs)*dim(fishing_monitored)[1]),replace=FALSE)
 fishing_monitored$bycatch[not_observed]<-0
 fishing_monitored$nbycatch[not_observed]<-0
+}
+
+if (detect_prob<1) {
 fishing_monitored$nbycatch<-sapply(fishing_monitored$nbycatch,function(x) rbinom(1,x,detect_prob))
+}
 
 BPUE_est[j,]<-(tapply(fishing_monitored$nbycatch,fishing_monitored$metiers,sum)/tapply(fishing_monitored$nbycatch,fishing_monitored$metiers,length))
 effort_mon[j,]<-tapply(fishing_monitored$nbycatch,fishing_monitored$metiers,length)
 
 
 } else {
-boat_monitored_by_metier<-p_monitor_metier*p_monitor_boat
 
+nmetier<-length(unique(fishing$metiers)) 
+if (force==1) {
+
+#boat_monitored_by_metier<-p_monitor_metier*p_monitor_boat ####we can do this because metier is a vessel characteristics at the moment
+boat_monitored_by_metier<-p_monitor_boat ####we can do this because metier is a vessel characteristics at the moment
+
+#boat_sampled<-sample(unique(fishing$boat[fishing$metiers==1]),ceiling(boat_monitored_by_metier[1]*length(unique(fishing$boat[fishing$metiers==1]))),replace=FALSE) # sample without replacement
+boat_sampled<-sample(unique(fishing$boat[fishing$metiers==1]),ceiling(boat_monitored_by_metier*length(unique(fishing$boat[fishing$metiers==1]))),replace=FALSE) # sample without replacement
+
+for (i in 2:nmetier) {
+#boat_sampled<-c(boat_sampled,sample(unique(fishing$boat[fishing$metiers==i]),ceiling(boat_monitored_by_metier[i]*length(unique(fishing$boat[fishing$metiers==i]))),replace=FALSE)) # sample without replacement
+boat_sampled<-c(boat_sampled,sample(unique(fishing$boat[fishing$metiers==i]),ceiling(boat_monitored_by_metier*length(unique(fishing$boat[fishing$metiers==i]))),replace=FALSE)) # sample without replacement
+
+}
+
+} else {
+multiplier<-p.metier
+multiplier[which.min(p.bycatch)]<-force*p_monitor_boat # we boost monitoring
+# now we have to take it out from the rest of the other metiers evenly
+denominator<-sum(p.metier)-p.metier[which.min(p.bycatch)]
+redux<-(force-1)*p_monitor_boat*p.metier[which.min(p.bycatch)]/denominator
+multiplier[p.bycatch!=min(p.bycatch)]<-p_monitor_boat-redux
+boat_monitored_by_metier<-multiplier
 
 boat_sampled<-sample(unique(fishing$boat[fishing$metiers==1]),ceiling(boat_monitored_by_metier[1]*length(unique(fishing$boat[fishing$metiers==1]))),replace=FALSE) # sample without replacement
 for (i in 2:nmetier) {
 boat_sampled<-c(boat_sampled,sample(unique(fishing$boat[fishing$metiers==i]),ceiling(boat_monitored_by_metier[i]*length(unique(fishing$boat[fishing$metiers==i]))),replace=FALSE)) # sample without replacement
 
 }
+
+} #end else
 
 #refusal
 boat_sampled<-sample(boat_sampled,size=ceiling(length(boat_sampled)*(1-refusal_rate)),replace=FALSE)
