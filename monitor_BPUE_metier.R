@@ -3,7 +3,7 @@
 ####################################################################################################
 
 monitor_BPUE_metier<-function(pmonitor=0.5,nsample=1000,BPUE_real=0,fishing=NA, p_monitor_boat=.1,boat_samp=TRUE,
-p_haul_obs=1,detect_prob=1,refusal_rate=0, misclassification=0, bymetier=FALSE, p_monitor_metier=1,p.metier=c(.2,.8),p.bycatch=c(0.1,.01),focus=1) {
+p_haul_obs=1,detect_prob=1,refusal_rate=0, misclassification=0, bymetier=FALSE, p_monitor_metier=1,p.metier=c(.2,.8),p.bycatch=c(0.1,.01),force=1) {
 
 ### changes on 17 Nov to fix issue raised by Torbjoern 
 ### added force
