@@ -1,8 +1,8 @@
 # scoti: Simulations for Characterising Optimal moniToring Implementations to inform the BEAM monitoring advice framework
 
-####################################################################################################################
+##############################################################################################
 we are currently stress testing scoti with realistic scenarios. until this process is completed, please use scoti as an experimental tool and do not hesitate to get in touch for any help, suggestions, or issues.
-####################################################################################################################
+##############################################################################################
 the goal is to develop a simulation platofrm to help appraise monitoring designs that can yield adequate Bycatch rate estimates given fishing characteristics of a fleet and features of a species influencing bycatch probability.
 
 
